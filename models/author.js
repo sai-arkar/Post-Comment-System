@@ -14,5 +14,10 @@ const authorSchema = new Schema({
           type: String,
           required: true
      },
-     posts: [{}]
+     posts: [{
+          type: Schema.Types.ObjectId,
+          ref: "Post"
+     }]
 });
+
+module.exports = mongoose.model("Author", authorSchema);
