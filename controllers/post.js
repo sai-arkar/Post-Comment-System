@@ -1,9 +1,9 @@
 const Post = require("../models/post");
 const Author = require("../models/author");
 const fileHelper = require("../middleware/file");
-const path = require("path");
+const Comment = require("../models/comment");
 
-exports.createPost = (req, res, next)=>{
+exports.createPost = async (req, res, next)=>{
      const title = req.body.title;
      const description = req.body.description;
 
@@ -15,56 +15,51 @@ exports.createPost = (req, res, next)=>{
 
      const imageUrl = req.file.path.replace("\\", "/");
 
-     const post = new Post({
-          title: title,
-          description: description,
-          image: imageUrl,
-          authorId: req.body.authorId // Need to add jwt token and user id
-     });
-     post.save()
-          .then(()=>{
-               return Author.findById(req.body.authorId)
-          })
-          .then((author)=>{
+     try{
+          const post = new Post({
+               title: title,
+               description: description,
+               image: imageUrl,
+               authorId: req.body.authorId // Need to add jwt token and user id
+          });
+          await post.save()
+          let author = await Author.findById(req.body.authorId)
                author.posts.push(post);
-               return author.save();
-          })
-          .then((result)=>{
+
+          let result = await author.save();
                res.status(201).json({
                     message: "Post Created",
                     post: post,
                     author: result
                });
-          })
-          .catch(err=>{
-               if(!err.statusCode){
-                    err.statusCode = 500;
-               }
-               next(err);
-          })
+     }catch(err){
+          if(!err.statusCode){
+               err.statusCode = 500;
+          }
+          next(err);
+     }
 }
 
-exports.getAllPost = (req, res, next)=>{
-     Post.find().populate("authorId")
-          .then((posts)=>{
+exports.getAllPost = async (req, res, next)=>{
+     try{
+          let posts = await Post.find().populate("authorId")
                res.status(200).json({
                     message: "Fetched Posts Successfully", 
                     posts: posts
                })
-          })
-          .catch(err=>{
-               if(!err.statusCode){
-                    err.statusCode = 500;
-               }
-               next(err);
-          })
+     }catch(err){
+          if(!err.statusCode){
+               err.statusCode = 500;
+          }
+          next(err);
+     }
 }
 
-exports.getPost = (req, res, next)=>{
+exports.getPost = async (req, res, next)=>{
      const postId = req.params.postId;
 
-     Post.findById(postId).populate("authorId")
-          .then(post=>{
+     try{
+          let post = await Post.findById(postId).populate("authorId");
                if(!post){
                     const error = new Error("Post Not Found");
                     error.statusCode = 404;
@@ -74,21 +69,20 @@ exports.getPost = (req, res, next)=>{
                     message: "Fetch Post Successfully", 
                     post: post
                });
-          })
-          .catch(err=>{
-               if(!err.statusCode){
-                    err.statusCode = 500;
-               }
-               next(err);
-          })
+     }catch(err){
+          if(!err.statusCode){
+               err.statusCode = 500;
+          }
+          next(err);
+     }
 }
 
-exports.deletePost = (req, res, next)=>{
+exports.deletePost = async (req, res, next)=>{
      const postId = req.params.postId;
      const authorId = req.params.authorId;
 
-     Post.findById(postId)
-          .then((post)=>{
+     try{
+          let post = await Post.findById(postId);
                if(!post){
                     const error = new Error("Post Not Found");
                     error.statusCode = 404;
@@ -101,29 +95,26 @@ exports.deletePost = (req, res, next)=>{
                }
 
                fileHelper.deleteFile(post.image);
-               return Post.findByIdAndRemove(postId);
-          })
-          .then(()=>{
-               return Author.findById(authorId);
-          })
-          .then((author)=>{
+          await Comment.deleteMany({post: postId});
+
+          await Post.findByIdAndRemove(postId);
+
+          let author = await Author.findById(authorId);
                author.posts.pull(postId);
-               return author.save();
-          })
-          .then(()=>{
+
+          await author.save();
                res.status(200).json({
                     message: "Delete Post Successfully"
                });
-          })
-          .catch(err=>{
-               if(!err.statusCode){
-                    err.statusCode = 500;
-               }
-               next(err);
-          })
+     }catch(err){
+          if(!err.statusCode){
+               err.statusCode = 500;
+          }
+          next(err);
+     }
 }
 
-exports.getEditPost = (req, res, next)=>{
+exports.getEditPost = async (req, res, next)=>{
      const editMode = req.query.edit;
      const authorId = req.params.authorId;
      const postId = req.params.postId;
@@ -133,8 +124,8 @@ exports.getEditPost = (req, res, next)=>{
           error.statusCode = 403;
           throw error;
      }
-     Post.findById(postId)
-          .then(post=>{
+     try{
+          let post = await Post.findById(postId)
                if(post.authorId.toString() !== authorId.toString()){
                     const error = new Error("Not Authorized");
                     error.statusCode = 200;
@@ -144,16 +135,15 @@ exports.getEditPost = (req, res, next)=>{
                     message: "Fetch Edit Post", 
                     post: post
                });
-          })
-          .catch(err=>{
-               if(!err.statusCode){
-                    err.statusCode = 500;
-               }
-               next(err);
-          })
+     }catch(err){
+          if(!err.statusCode){
+               err.statusCode = 500;
+          }
+          next(err);
+     }
 }
 
-exports.postEditPost = (req, res, next)=>{
+exports.postEditPost = async (req, res, next)=>{
      const authorId = req.body.authorId;
      const postId = req.body.postId;
      const title = req.body.title;
@@ -169,8 +159,8 @@ exports.postEditPost = (req, res, next)=>{
           throw error;
      }
 
-     Post.findById(postId)
-          .then((post)=>{
+     try{
+          let post = await Post.findById(postId);
                if(!post){
                     const error = new Error("Post Not Found");
                     error.statusCode = 404;
@@ -190,19 +180,16 @@ exports.postEditPost = (req, res, next)=>{
                post.description = description;
                post.authorId = authorId;
 
-               return post.save();
-          })
-          .then((newPost)=>{
+          let newPost = await post.save();
                console.log("Edit Post Successfully");
                res.status(201).json({
                     message: "Edit Post Successfully", 
                     post: newPost
-               })
-          })
-          .catch(err=>{
-               if(!err.statusCode){
-                    err.statusCode = 500;
-               }
-               next(err);
-          })
+               });
+     }catch(err){
+          if(!err.statusCode){
+               err.statusCode = 500;
+          }
+          next(err);
+     }
 }

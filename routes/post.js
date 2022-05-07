@@ -9,7 +9,7 @@ router.post("/post", postController.createPost);
 // Fetch All Posts
 router.get("/posts", postController.getAllPost);
 
-// Delete Post
+// Delete Post & comment
 router.delete("/post/:authorId/:postId", postController.deletePost);
 
 // Fetch One Post

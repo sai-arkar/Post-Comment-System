@@ -1,29 +1,28 @@
 const Comment = require("../models/comment");
 
-exports.postComment = (req, res, next)=>{
+exports.postComment = async (req, res, next)=>{
      const postId = req.body.postId;
      const authorId = req.body.authorId;
      const comment = req.body.comment;
 
-     const c = new Comment({
-          author: authorId,
-          post: postId,
-          comment: comment
-     });
-     c.save()
-          .then((comment)=>{
+     try{
+          const c = new Comment({
+               author: authorId,
+               post: postId,
+               comment: comment
+          });
+          let result = await c.save()
                // console.log(comment);
                res.status(201).json({
                     message: "Post Comment Successfully",
-                    comment: comment
+                    comment: result
                });
-          })
-          .catch(err =>{
-               if(!err.statusCode){
-                    err.statusCode = 500;
-               }
-               next();
-          })
+     }catch(err){
+          if(!err.statusCode){
+               err.statusCode = 500;
+          }
+          next();
+     }
 }
 
 exports.deleteComment = async(req, res, next)=>{

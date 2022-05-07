@@ -3,9 +3,13 @@ const mongoose = require("mongoose");
 const path = require("path");
 const multer = require("multer");
 const uuidv4 = require("uuid");
-const app = express();
+const session = require("express-session");
+const MongoDBStore = require("connect-mongodb-session")(session);
+
 
 const uri = "mongodb+srv://root:root@cluster0.hl7kn.mongodb.net/Post-Comment-System?retryWrites=true&w=majority";
+
+const app = express();
 
 const authRoutes = require("./routes/auth");
 const feedRoutes = require("./routes/post");
